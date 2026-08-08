@@ -13,6 +13,7 @@ from dataclasses import dataclass, field
 from datetime import date
 from pathlib import Path
 from typing import Literal
+from decimal import Decimal, ROUND_HALF_UP
 
 EntryType = Literal["credit", "debit"]
 
@@ -171,9 +172,13 @@ def load_case(case_dir: str | Path) -> tuple[Client, Offer, CreditorRules]:
     )
 
 
-def offer_total_cents(offer: Offer) -> int:
-    return round(offer.settlement_pct * offer.current_balance_cents)
+def round_half_up(val: float) -> int:
+    """Rounds a float half-up, away from zero."""
+    # We convert to a string first to avoid underlying floating-point precision quirks
+    return int(Decimal(str(val)).quantize(Decimal('1'), rounding=ROUND_HALF_UP))
 
+def offer_total_cents(offer: Offer) -> int:
+    return round_half_up(offer.settlement_pct * offer.current_balance_cents)
 
 def program_fee_cents(offer: Offer, rules: CreditorRules) -> int:
-    return round(rules.program_fee_pct * offer.original_balance_cents)
+    return round_half_up(rules.program_fee_pct * offer.original_balance_cents)
